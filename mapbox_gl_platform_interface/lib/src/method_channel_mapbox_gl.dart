@@ -797,10 +797,4 @@ class MethodChannelMapboxGl extends MapboxGlPlatform {
           .map((key, value) => MapEntry<String, String>(key, jsonEncode(value)))
     });
   }
-  
-  @override
-  void dispose() {
-    super.dispose();
-    _channel.setMethodCallHandler(null);
-  }
 }
