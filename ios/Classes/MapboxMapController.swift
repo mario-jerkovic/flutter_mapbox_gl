@@ -326,7 +326,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
             let belowLayerId = arguments["belowLayerId"] as? String
             let sourceLayer = arguments["sourceLayer"] as? String
             let filter = arguments["filter"] as? String
-            print("MARIO: ", "\t", filter)
+
             let addResult = addSymbolLayer(
                 sourceId: sourceId,
                 layerId: layerId,
@@ -348,6 +348,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
             let belowLayerId = arguments["belowLayerId"] as? String
             let sourceLayer = arguments["sourceLayer"] as? String
             let filter = arguments["filter"] as? String
+
             let addResult = addLineLayer(
                 sourceId: sourceId,
                 layerId: layerId,
@@ -453,7 +454,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
             guard let imageSourceId = arguments["imageSourceId"] as? String else { return }
             guard let bytes = arguments["bytes"] as? FlutterStandardTypedData else { return }
             guard let data = bytes.data as? Data else { return }
-            guard let image = UIImage(data: data) else { return }
+            guard let image = UIImage(data: data, scale: UIScreen.main.scale) else { return }
 
             guard let coordinates = arguments["coordinates"] as? [[Double]] else { return }
             let quad = MGLCoordinateQuad(
@@ -1065,7 +1066,6 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 with: filter.data(using: .utf8)!,
                 options: .fragmentsAllowed
             )
-            print("IS NULL: ", filter);
             if filter is NSNull {
                 return .success(())
             }
