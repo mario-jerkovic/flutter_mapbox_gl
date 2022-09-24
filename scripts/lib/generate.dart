@@ -49,11 +49,6 @@ main() async {
     "lib/src",
     "layer_properties.dart",
   );
-  await render(
-    renderContext,
-    "mapbox_gl_web/lib/src",
-    "layer_tools.dart",
-  );
 }
 
 Future<void> render(
