@@ -1313,7 +1313,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
         belowLayerId: String?,
         sourceLayerIdentifier: String?,
         properties: [String: String]
-    ) {
+    ) -> Result<Void, MethodCallError> {
         if let style = mapView.style {
             if let source = style.source(withIdentifier: sourceId) {
                 let layer = MGLSymbolStyleLayer(identifier: layerId, source: source)
@@ -1337,6 +1337,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 featureLayerIdentifiers.insert(layerId)
             }
         }
+        return .success(())
     }
 
     func addLineLayer(
@@ -1346,7 +1347,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
         belowLayerId: String?,
         sourceLayerIdentifier: String?,
         properties: [String: String]
-    ) {
+    ) -> Result<Void, MethodCallError> {
         if let style = mapView.style {
             if let source = style.source(withIdentifier: sourceId) {
                 let layer = MGLLineStyleLayer(identifier: layerId, source: source)
@@ -1367,6 +1368,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 featureLayerIdentifiers.insert(layerId)
             }
         }
+        return .success(())
     }
 
     func addFillLayer(
@@ -1376,7 +1378,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
         belowLayerId: String?,
         sourceLayerIdentifier: String?,
         properties: [String: String]
-    ) {
+    ) -> Result<Void, MethodCallError> {
         if let style = mapView.style {
             if let source = style.source(withIdentifier: sourceId) {
                 let layer = MGLFillStyleLayer(identifier: layerId, source: source)
@@ -1397,6 +1399,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 featureLayerIdentifiers.insert(layerId)
             }
         }
+        return .success(())
     }
 
     func addCircleLayer(
@@ -1406,7 +1409,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
         belowLayerId: String?,
         sourceLayerIdentifier: String?,
         properties: [String: String]
-    ) {
+    ) -> Result<Void, MethodCallError> {
         if let style = mapView.style {
             if let source = style.source(withIdentifier: sourceId) {
                 let layer = MGLCircleStyleLayer(identifier: layerId, source: source)
@@ -1430,6 +1433,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 featureLayerIdentifiers.insert(layerId)
             }
         }
+        return .success(())
     }
 
     func setFilter(_ layer: MGLStyleLayer, _ filter: String) -> Result<Void, MethodCallError> {
