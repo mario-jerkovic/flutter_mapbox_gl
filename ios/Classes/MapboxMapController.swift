@@ -1065,6 +1065,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 with: filter.data(using: .utf8)!,
                 options: .fragmentsAllowed
             )
+            print("IS NULL: ", filter);
             if filter is NSNull {
                 return .success(())
             }
