@@ -585,14 +585,19 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
             guard let properties = arguments["properties"] as? [String: String] else { return }
             let belowLayerId = arguments["belowLayerId"] as? String
             let sourceLayer = arguments["sourceLayer"] as? String
-            addSymbolLayer(
+            let filter = arguments["filter"] as? String
+            let addResult = addSymbolLayer(
                 sourceId: sourceId,
                 layerId: layerId,
+                filter: filter,
                 belowLayerId: belowLayerId,
                 sourceLayerIdentifier: sourceLayer,
                 properties: properties
             )
-            result(nil)
+            switch addResult {
+            case .success: result(nil)
+            case let .failure(error): result(error.flutterError)
+            }
 
         case "lineLayer#add":
             guard let arguments = methodCall.arguments as? [String: Any] else { return }
@@ -601,14 +606,19 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
             guard let properties = arguments["properties"] as? [String: String] else { return }
             let belowLayerId = arguments["belowLayerId"] as? String
             let sourceLayer = arguments["sourceLayer"] as? String
-            addLineLayer(
+            let filter = arguments["filter"] as? String
+            let addResult = addLineLayer(
                 sourceId: sourceId,
                 layerId: layerId,
+                filter: filter,
                 belowLayerId: belowLayerId,
                 sourceLayerIdentifier: sourceLayer,
                 properties: properties
             )
-            result(nil)
+            switch addResult {
+            case .success: result(nil)
+            case let .failure(error): result(error.flutterError)
+            }
 
         case "fillLayer#add":
             guard let arguments = methodCall.arguments as? [String: Any] else { return }
@@ -617,14 +627,20 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
             guard let properties = arguments["properties"] as? [String: String] else { return }
             let belowLayerId = arguments["belowLayerId"] as? String
             let sourceLayer = arguments["sourceLayer"] as? String
-            addFillLayer(
+            let filter = arguments["filter"] as? String
+
+            let addResult = addFillLayer(
                 sourceId: sourceId,
                 layerId: layerId,
+                filter: filter,
                 belowLayerId: belowLayerId,
                 sourceLayerIdentifier: sourceLayer,
                 properties: properties
             )
-            result(nil)
+            switch addResult {
+            case .success: result(nil)
+            case let .failure(error): result(error.flutterError)
+            }
 
         case "circleLayer#add":
             guard let arguments = methodCall.arguments as? [String: Any] else { return }
@@ -633,14 +649,20 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
             guard let properties = arguments["properties"] as? [String: String] else { return }
             let belowLayerId = arguments["belowLayerId"] as? String
             let sourceLayer = arguments["sourceLayer"] as? String
-            addCircleLayer(
+            let filter = arguments["filter"] as? String
+
+            let addResult = addCircleLayer(
                 sourceId: sourceId,
                 layerId: layerId,
+                filter: filter,
                 belowLayerId: belowLayerId,
                 sourceLayerIdentifier: sourceLayer,
                 properties: properties
             )
-            result(nil)
+            switch addResult {
+            case .success: result(nil)
+            case let .failure(error): result(error.flutterError)
+            }
 
         case "hillshadeLayer#add":
             guard let arguments = methodCall.arguments as? [String: Any] else { return }
@@ -926,6 +948,19 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
             featureLayerIdentifiers.remove(layerId)
             mapView.style?.removeLayer(layer)
             result(nil)
+
+        case "style#setFilter":
+            guard let arguments = methodCall.arguments as? [String: Any] else { return }
+            guard let layerId = arguments["layerId"] as? String else { return }
+            guard let filter = arguments["filter"] as? String else { return }
+            guard let layer = mapView.style?.layer(withIdentifier: layerId) else {
+                result(nil)
+                return
+            }
+            switch setFilter(layer, filter) {
+            case .success: result(nil)
+            case let .failure(error): result(error.flutterError)
+            }
 
         case "source#addGeoJson":
             guard let arguments = methodCall.arguments as? [String: Any] else { return }
@@ -1274,6 +1309,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
     func addSymbolLayer(
         sourceId: String,
         layerId: String,
+        filter: String?,
         belowLayerId: String?,
         sourceLayerIdentifier: String?,
         properties: [String: String]
@@ -1288,6 +1324,11 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 if let sourceLayerIdentifier = sourceLayerIdentifier {
                     layer.sourceLayerIdentifier = sourceLayerIdentifier
                 }
+                if let filter = filter {
+                    if case let .failure(error) = setFilter(layer, filter) {
+                        return .failure(error)
+                    }
+                }
                 if let id = belowLayerId, let belowLayer = style.layer(withIdentifier: id) {
                     style.insertLayer(layer, below: belowLayer)
                 } else {
@@ -1301,6 +1342,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
     func addLineLayer(
         sourceId: String,
         layerId: String,
+        filter: String?,
         belowLayerId: String?,
         sourceLayerIdentifier: String?,
         properties: [String: String]
@@ -1311,6 +1353,11 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 LayerPropertyConverter.addLineProperties(lineLayer: layer, properties: properties)
                 if let sourceLayerIdentifier = sourceLayerIdentifier {
                     layer.sourceLayerIdentifier = sourceLayerIdentifier
+                }
+                if let filter = filter {
+                    if case let .failure(error) = setFilter(layer, filter) {
+                        return .failure(error)
+                    }
                 }
                 if let id = belowLayerId, let belowLayer = style.layer(withIdentifier: id) {
                     style.insertLayer(layer, below: belowLayer)
@@ -1325,6 +1372,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
     func addFillLayer(
         sourceId: String,
         layerId: String,
+        filter: String?,
         belowLayerId: String?,
         sourceLayerIdentifier: String?,
         properties: [String: String]
@@ -1335,6 +1383,11 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 LayerPropertyConverter.addFillProperties(fillLayer: layer, properties: properties)
                 if let sourceLayerIdentifier = sourceLayerIdentifier {
                     layer.sourceLayerIdentifier = sourceLayerIdentifier
+                }
+                if let filter = filter {
+                    if case let .failure(error) = setFilter(layer, filter) {
+                        return .failure(error)
+                    }
                 }
                 if let id = belowLayerId, let belowLayer = style.layer(withIdentifier: id) {
                     style.insertLayer(layer, below: belowLayer)
@@ -1349,6 +1402,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
     func addCircleLayer(
         sourceId: String,
         layerId: String,
+        filter: String?,
         belowLayerId: String?,
         sourceLayerIdentifier: String?,
         properties: [String: String]
@@ -1363,6 +1417,11 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 if let sourceLayerIdentifier = sourceLayerIdentifier {
                     layer.sourceLayerIdentifier = sourceLayerIdentifier
                 }
+                if let filter = filter {
+                    if case let .failure(error) = setFilter(layer, filter) {
+                        return .failure(error)
+                    }
+                }
                 if let id = belowLayerId, let belowLayer = style.layer(withIdentifier: id) {
                     style.insertLayer(layer, below: belowLayer)
                 } else {
@@ -1370,6 +1429,29 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 }
                 featureLayerIdentifiers.insert(layerId)
             }
+        }
+    }
+
+    func setFilter(_ layer: MGLStyleLayer, _ filter: String) -> Result<Void, MethodCallError> {
+        do {
+            let filter = try JSONSerialization.jsonObject(
+                with: filter.data(using: .utf8)!,
+                options: .fragmentsAllowed
+            )
+            if filter is NSNull {
+                return .success(())
+            }
+            let predicate = NSPredicate(mglJSONObject: filter)
+            if let layer = layer as? MGLVectorStyleLayer {
+                layer.predicate = predicate
+            } else {
+                return .failure(MethodCallError.invalidLayerType(
+                    details: "Layer '\(layer.identifier)' does not support filtering."
+                ))
+            }
+            return .success(())
+        } catch {
+            return .failure(MethodCallError.invalidExpression)
         }
     }
 

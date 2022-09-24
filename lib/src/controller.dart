@@ -308,17 +308,23 @@ class MapboxMapController extends ChangeNotifier {
   ///
   /// The returned [Future] completes after the change has been made on the
   /// platform side.
+  /// Vector source.
+  /// [filter] determines which features should be rendered in the layer.
   ///
   /// Note: [belowLayerId] is currently ignored on the web
+  /// Filters are written as [expressions].
+  ///
+  /// [expressions]: https://docs.mapbox.com/mapbox-gl-js/style-spec/expressions
   Future<void> addSymbolLayer(
       String sourceId, String layerId, SymbolLayerProperties properties,
-      {String? belowLayerId, String? sourceLayer}) async {
+      {String? belowLayerId, String? sourceLayer, dynamic filter, }) async {
     await _mapboxGlPlatform.addSymbolLayer(
       sourceId,
       layerId,
       properties.toJson(),
       belowLayerId: belowLayerId,
       sourceLayer: sourceLayer,
+      filter: filter,
     );
   }
 
@@ -328,15 +334,21 @@ class MapboxMapController extends ChangeNotifier {
   /// platform side.
   ///
   /// Note: [belowLayerId] is currently ignored on the web
+  /// Vector source.
+  /// [filter] determines which features should be rendered in the layer.
+  /// Filters are written as [expressions].
+  ///
+  /// [expressions]: https://docs.mapbox.com/mapbox-gl-js/style-spec/expressions
   Future<void> addLineLayer(
       String sourceId, String layerId, LineLayerProperties properties,
-      {String? belowLayerId, String? sourceLayer}) async {
+      {String? belowLayerId, String? sourceLayer, dynamic filter}) async {
     await _mapboxGlPlatform.addLineLayer(
       sourceId,
       layerId,
       properties.toJson(),
       belowLayerId: belowLayerId,
       sourceLayer: sourceLayer,
+      filter: filter,
     );
   }
 
@@ -346,15 +358,21 @@ class MapboxMapController extends ChangeNotifier {
   /// platform side.
   ///
   /// Note: [belowLayerId] is currently ignored on the web
+  /// Vector source.
+  /// [filter] determines which features should be rendered in the layer.
+  /// Filters are written as [expressions].
+  ///
+  /// [expressions]: https://docs.mapbox.com/mapbox-gl-js/style-spec/expressions
   Future<void> addFillLayer(
       String sourceId, String layerId, FillLayerProperties properties,
-      {String? belowLayerId, String? sourceLayer}) async {
+      {String? belowLayerId, String? sourceLayer, dynamic filter}) async {
     await _mapboxGlPlatform.addFillLayer(
       sourceId,
       layerId,
       properties.toJson(),
       belowLayerId: belowLayerId,
       sourceLayer: sourceLayer,
+      filter: filter,
     );
   }
 
@@ -364,15 +382,21 @@ class MapboxMapController extends ChangeNotifier {
   /// platform side.
   ///
   /// Note: [belowLayerId] is currently ignored on the web
+  /// Vector source.
+  /// [filter] determines which features should be rendered in the layer.
+  /// Filters are written as [expressions].
+  ///
+  /// [expressions]: https://docs.mapbox.com/mapbox-gl-js/style-spec/expressions
   Future<void> addCircleLayer(
       String sourceId, String layerId, CircleLayerProperties properties,
-      {String? belowLayerId, String? sourceLayer}) async {
+      {String? belowLayerId, String? sourceLayer, dynamic filter}) async {
     await _mapboxGlPlatform.addCircleLayer(
       sourceId,
       layerId,
       properties.toJson(),
       belowLayerId: belowLayerId,
       sourceLayer: sourceLayer,
+      filter: filter,
     );
   }
 
@@ -990,6 +1014,10 @@ class MapboxMapController extends ChangeNotifier {
     return _mapboxGlPlatform.removeLayer(layerId);
   }
 
+  Future<void> setFilter(String layerId, dynamic filter) {
+    return _mapboxGlPlatform.setFilter(layerId, filter);
+  }
+
   /// Returns the point on the screen that corresponds to a geographical coordinate ([latLng]). The screen location is in screen pixels (not display pixels) relative to the top left of the map (not of the whole screen)
   ///
   /// Note: The resulting x and y coordinates are rounded to [int] on web, on other platforms they may differ very slightly (in the range of about 10^-10) from the actual nearest screen coordinate.
@@ -1020,27 +1048,49 @@ class MapboxMapController extends ChangeNotifier {
     return _mapboxGlPlatform.addSource(sourceid, properties);
   }
 
+  /// Add a layer to the map with the given properties
+  ///
+  /// The returned [Future] completes after the change has been made on the
+  /// platform side.
+  ///
+  /// Setting [belowLayerId] adds the new layer below the given id.
+  /// If [enableInteraction] is set the layer is considered for touch or drag
+  /// events this has no effect for [RasterLayerProperties] and
+  /// [HillshadeLayerProperties].
+  /// [sourceLayer] is used to selected a specific source layer from Vector
+  /// source.
+  /// [filter] determines which features should be rendered in the layer.
+  /// Filters are written as [expressions].
+  /// [filter] is not supported by RasterLayer and HillshadeLayer.
+  ///
+  /// [expressions]: https://docs.mapbox.com/mapbox-gl-js/style-spec/expressions
   Future<void> addLayer(
       String sourceId, String layerId, LayerProperties properties,
       {String? belowLayerId,
         bool enableInteraction = true,
-        String? sourceLayer}) async {
+        String? sourceLayer, dynamic filter}) async {
     if (properties is FillLayerProperties) {
       addFillLayer(sourceId, layerId, properties,
-          belowLayerId: belowLayerId, sourceLayer: sourceLayer);
+          belowLayerId: belowLayerId, sourceLayer: sourceLayer, filter: filter);
     } else if (properties is LineLayerProperties) {
       addLineLayer(sourceId, layerId, properties,
-          belowLayerId: belowLayerId, sourceLayer: sourceLayer);
+          belowLayerId: belowLayerId, sourceLayer: sourceLayer, filter: filter);
     } else if (properties is SymbolLayerProperties) {
       addSymbolLayer(sourceId, layerId, properties,
-          belowLayerId: belowLayerId, sourceLayer: sourceLayer);
+          belowLayerId: belowLayerId, sourceLayer: sourceLayer, filter: filter);
     } else if (properties is CircleLayerProperties) {
       addCircleLayer(sourceId, layerId, properties,
-          belowLayerId: belowLayerId, sourceLayer: sourceLayer);
+          belowLayerId: belowLayerId, sourceLayer: sourceLayer, filter: filter);
     } else if (properties is RasterLayerProperties) {
+      if (filter != null) {
+        throw UnimplementedError("RasterLayer does not support filter");
+      }
       addRasterLayer(sourceId, layerId, properties,
           belowLayerId: belowLayerId, sourceLayer: sourceLayer);
     } else if (properties is HillshadeLayerProperties) {
+      if (filter != null) {
+        throw UnimplementedError("HillShadeLayer does not support filter");
+      }
       addHillshadeLayer(sourceId, layerId, properties,
           belowLayerId: belowLayerId, sourceLayer: sourceLayer);
     } else {

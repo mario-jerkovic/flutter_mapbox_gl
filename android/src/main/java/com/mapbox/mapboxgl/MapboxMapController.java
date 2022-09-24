@@ -29,6 +29,7 @@ import androidx.lifecycle.LifecycleOwner;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import com.mapbox.android.core.location.LocationEngine;
 import com.mapbox.android.core.location.LocationEngineCallback;
 import com.mapbox.android.core.location.LocationEngineProvider;
@@ -444,7 +445,9 @@ final class MapboxMapController
     if(sourceLayer != null){
       symbolLayer.setSourceLayer(sourceLayer);
     }
-
+    if(filter != null) {
+      symbolLayer.setFilter(filter);
+    }
     if(belowLayerId != null){
       style.addLayerBelow(symbolLayer, belowLayerId);
     }
@@ -466,7 +469,9 @@ final class MapboxMapController
     if(sourceLayer != null){
       lineLayer.setSourceLayer(sourceLayer);
     }
-
+    if(filter != null) {
+      lineLayer.setFilter(filter);
+    }
     if(belowLayerId != null){
       style.addLayerBelow(lineLayer, belowLayerId);
     }
@@ -488,7 +493,9 @@ final class MapboxMapController
     if(sourceLayer != null){
       fillLayer.setSourceLayer(sourceLayer);
     }
-
+    if(filter != null) {
+      fillLayer.setFilter(filter);
+    }
     if(belowLayerId != null){
       style.addLayerBelow(fillLayer, belowLayerId);
     }
@@ -510,7 +517,9 @@ final class MapboxMapController
     if(sourceLayer != null){
       circleLayer.setSourceLayer(sourceLayer);
     }
-
+    if(filter != null) {
+      circleLayer.setFilter(filter);
+    }
     featureLayerIdentifiers.add(layerName);
     if(belowLayerId != null){
       style.addLayerBelow(circleLayer, belowLayerId);
@@ -519,6 +528,12 @@ final class MapboxMapController
     {
       style.addLayer(circleLayer);
     }
+  }
+
+  private Expression parseFilter(String filter) {
+    JsonParser parser = new JsonParser();
+    JsonElement filterJsonElement = parser.parse(filter);
+    return filterJsonElement.isJsonNull() ? null : Expression.Converter.convert(filterJsonElement);
   }
 
   private void addRasterLayer(String layerName,
@@ -1231,8 +1246,10 @@ final class MapboxMapController
         final String layerId = call.argument("layerId");
         final String belowLayerId = call.argument("belowLayerId");
         final String sourceLayer = call.argument("sourceLayer");
+        final String filter = call.argument("filter");
         final PropertyValue[] properties = LayerPropertyConverter.interpretSymbolLayerProperties(call.argument("properties"));
-        addSymbolLayer(layerId, sourceId, belowLayerId, sourceLayer, properties, null);
+        Expression filterExpression = parseFilter(filter);
+        addSymbolLayer(layerId, sourceId, belowLayerId, sourceLayer, properties, filterExpression);
         result.success(null);
         break;
       }
@@ -1241,8 +1258,10 @@ final class MapboxMapController
         final String layerId = call.argument("layerId");
         final String belowLayerId = call.argument("belowLayerId");
         final String sourceLayer = call.argument("sourceLayer");
+        final String filter = call.argument("filter");
         final PropertyValue[] properties = LayerPropertyConverter.interpretLineLayerProperties(call.argument("properties"));
-        addLineLayer(layerId, sourceId, belowLayerId, sourceLayer,  properties, null);
+        Expression filterExpression = parseFilter(filter);
+        addLineLayer(layerId, sourceId, belowLayerId, sourceLayer,  properties, filterExpression);
         result.success(null);
         break;
       }
@@ -1251,8 +1270,10 @@ final class MapboxMapController
         final String layerId = call.argument("layerId");
         final String belowLayerId = call.argument("belowLayerId");
         final String sourceLayer = call.argument("sourceLayer");
+        final String filter = call.argument("filter");
         final PropertyValue[] properties = LayerPropertyConverter.interpretFillLayerProperties(call.argument("properties"));
-        addFillLayer(layerId, sourceId, belowLayerId, sourceLayer,  properties, null);
+        Expression filterExpression = parseFilter(filter);
+        addFillLayer(layerId, sourceId, belowLayerId, sourceLayer,  properties, filterExpression);
         result.success(null);
         break;
       }
@@ -1261,8 +1282,10 @@ final class MapboxMapController
         final String layerId = call.argument("layerId");
         final String belowLayerId = call.argument("belowLayerId");
         final String sourceLayer = call.argument("sourceLayer");
+        final String filter = call.argument("filter");
         final PropertyValue[] properties = LayerPropertyConverter.interpretCircleLayerProperties(call.argument("properties"));
-        addCircleLayer(layerId, sourceId, belowLayerId, sourceLayer,  properties, null);
+        Expression filterExpression = parseFilter(filter);
+        addCircleLayer(layerId, sourceId, belowLayerId, sourceLayer,  properties, filterExpression);
         result.success(null);
         break;
       }
@@ -1374,6 +1397,46 @@ final class MapboxMapController
         String layerId = call.argument("layerId");
         style.removeLayer(layerId);
         featureLayerIdentifiers.remove(layerId);
+
+        result.success(null);
+        break;
+      }
+      case "style#setFilter":
+      {
+        if (style == null) {
+          result.error(
+                  "STYLE IS NULL",
+                  "The style is null. Has onStyleLoaded() already been invoked?",
+                  null);
+        }
+        String layerId = call.argument("layerId");
+        String filter = call.argument("filter");
+
+        Layer layer = style.getLayer(layerId);
+
+        JsonParser parser = new JsonParser();
+        JsonElement jsonElement = parser.parse(filter);
+        Expression expression = Expression.Converter.convert(jsonElement);
+
+        if (layer instanceof CircleLayer) {
+          ((CircleLayer) layer).setFilter(expression);
+        } else if (layer instanceof FillExtrusionLayer) {
+          ((FillExtrusionLayer) layer).setFilter(expression);
+        } else if (layer instanceof FillLayer) {
+          ((FillLayer) layer).setFilter(expression);
+        } else if (layer instanceof HeatmapLayer) {
+          ((HeatmapLayer) layer).setFilter(expression);
+        } else if (layer instanceof LineLayer) {
+          ((LineLayer) layer).setFilter(expression);
+        } else if (layer instanceof SymbolLayer) {
+          ((SymbolLayer) layer).setFilter(expression);
+        } else {
+          result.error(
+                  "INVALID LAYER TYPE",
+                  String.format("Layer '%s' does not support filtering.", layerId),
+                  null);
+          break;
+        }
 
         result.success(null);
         break;
