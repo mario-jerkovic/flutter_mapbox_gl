@@ -960,7 +960,6 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
                 featureLayerIdentifiers.insert(layerId)
             }
         }
-        print("SUCCESS addSymbolLayer")
         return .success(())
     }
 
