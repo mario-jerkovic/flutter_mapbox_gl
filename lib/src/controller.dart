@@ -5,6 +5,10 @@
 part of mapbox_gl;
 
 typedef void OnMapClickCallback(Point<double> point, LatLng coordinates);
+
+typedef void OnFeatureTappedCallback(
+    dynamic id, Point<double> point, LatLng coordinates);
+
 typedef void OnMapLongClickCallback(Point<double> point, LatLng coordinates);
 
 typedef void OnAttributionClickCallback();
@@ -86,8 +90,10 @@ class MapboxMapController extends ChangeNotifier {
       }
     });
 
-    _mapboxGlPlatform.onFeatureTappedPlatform.add((featureId) {
-      onFeatureTapped(featureId);
+    _mapboxGlPlatform.onFeatureTappedPlatform.add((payload) {
+      for (final fun in List<OnFeatureTappedCallback>.from(onFeatureTapped)) {
+        fun(payload["id"], payload["point"], payload["latLng"]);
+      }
     });
 
     _mapboxGlPlatform.onCameraMoveStartedPlatform.add((_) {
@@ -181,12 +187,11 @@ class MapboxMapController extends ChangeNotifier {
   final ArgumentCallbacks<Fill> onFillTapped = ArgumentCallbacks<Fill>();
 
   /// Callbacks to receive tap events for features (geojson layer) placed on this map.
-  final ArgumentCallbacks<dynamic> onFeatureTapped =
-      ArgumentCallbacks<dynamic>();
+  final onFeatureTapped = <OnFeatureTappedCallback>[];
 
   /// Callbacks to receive tap events for info windows on symbols
   final ArgumentCallbacks<Symbol> onInfoWindowTapped =
-      ArgumentCallbacks<Symbol>();
+  ArgumentCallbacks<Symbol>();
 
   /// The current set of symbols on this map.
   ///
@@ -271,11 +276,16 @@ class MapboxMapController extends ChangeNotifier {
   /// The json in [geojson] has to comply with the schema for FeatureCollection
   /// as specified in https://datatracker.ietf.org/doc/html/rfc7946#section-3.3
   ///
+  /// [promoteId] can be used on web to promote an id from properties to be the
+  /// id of the feature. This is useful because by default mapbox-gl-js does not
+  /// support string ids
+  ///
   /// The returned [Future] completes after the change has been made on the
   /// platform side.
-  Future<void> addGeoJsonSource(
-      String sourceId, Map<String, dynamic> geojson) async {
-    await _mapboxGlPlatform.addGeoJsonSource(sourceId, geojson);
+  Future<void> addGeoJsonSource(String sourceId, Map<String, dynamic> geojson,
+      {String? promoteId}) async {
+    await _mapboxGlPlatform.addGeoJsonSource(sourceId, geojson,
+        promoteId: promoteId);
   }
 
   /// Sets new geojson data to and existing source
@@ -302,12 +312,13 @@ class MapboxMapController extends ChangeNotifier {
   /// Note: [belowLayerId] is currently ignored on the web
   Future<void> addSymbolLayer(
       String sourceId, String layerId, SymbolLayerProperties properties,
-      {String? belowLayerId}) async {
+      {String? belowLayerId, String? sourceLayer}) async {
     await _mapboxGlPlatform.addSymbolLayer(
       sourceId,
       layerId,
       properties.toJson(),
       belowLayerId: belowLayerId,
+      sourceLayer: sourceLayer,
     );
   }
 
@@ -319,12 +330,13 @@ class MapboxMapController extends ChangeNotifier {
   /// Note: [belowLayerId] is currently ignored on the web
   Future<void> addLineLayer(
       String sourceId, String layerId, LineLayerProperties properties,
-      {String? belowLayerId}) async {
+      {String? belowLayerId, String? sourceLayer}) async {
     await _mapboxGlPlatform.addLineLayer(
       sourceId,
       layerId,
       properties.toJson(),
       belowLayerId: belowLayerId,
+      sourceLayer: sourceLayer,
     );
   }
 
@@ -336,12 +348,13 @@ class MapboxMapController extends ChangeNotifier {
   /// Note: [belowLayerId] is currently ignored on the web
   Future<void> addFillLayer(
       String sourceId, String layerId, FillLayerProperties properties,
-      {String? belowLayerId}) async {
+      {String? belowLayerId, String? sourceLayer}) async {
     await _mapboxGlPlatform.addFillLayer(
       sourceId,
       layerId,
       properties.toJson(),
       belowLayerId: belowLayerId,
+      sourceLayer: sourceLayer,
     );
   }
 
@@ -353,12 +366,43 @@ class MapboxMapController extends ChangeNotifier {
   /// Note: [belowLayerId] is currently ignored on the web
   Future<void> addCircleLayer(
       String sourceId, String layerId, CircleLayerProperties properties,
-      {String? belowLayerId}) async {
+      {String? belowLayerId, String? sourceLayer}) async {
     await _mapboxGlPlatform.addCircleLayer(
       sourceId,
       layerId,
       properties.toJson(),
       belowLayerId: belowLayerId,
+      sourceLayer: sourceLayer,
+    );
+  }
+
+  /// Add a circle layer to the map with the given properties
+  ///
+  /// The returned [Future] completes after the change has been made on the
+  /// platform side.
+  ///
+  /// Note: [belowLayerId] is currently ignored on the web
+  Future<void> addRasterLayer(
+      String sourceId, String layerId, RasterLayerProperties properties,
+      {String? belowLayerId, String? sourceLayer}) async {
+    await _mapboxGlPlatform.addRasterLayer(
+      sourceId,
+      layerId,
+      properties.toJson(),
+      belowLayerId: belowLayerId,
+      sourceLayer: sourceLayer,
+    );
+  }
+
+  Future<void> addHillshadeLayer(
+      String sourceId, String layerId, HillshadeLayerProperties properties,
+      {String? belowLayerId, String? sourceLayer}) async {
+    await _mapboxGlPlatform.addHillshadeLayer(
+      sourceId,
+      layerId,
+      properties.toJson(),
+      belowLayerId: belowLayerId,
+      sourceLayer: sourceLayer,
     );
   }
 
@@ -431,7 +475,7 @@ class MapboxMapController extends ChangeNotifier {
   /// been notified.
   Future<Symbol> addSymbol(SymbolOptions options, [Map? data]) async {
     List<Symbol> result =
-        await addSymbols([options], data != null ? [data] : []);
+    await addSymbols([options], data != null ? [data] : []);
 
     return result.first;
   }
@@ -447,7 +491,7 @@ class MapboxMapController extends ChangeNotifier {
   Future<List<Symbol>> addSymbols(List<SymbolOptions> options,
       [List<Map>? data]) async {
     final List<SymbolOptions> effectiveOptions =
-        options.map((o) => SymbolOptions.defaultOptions.copyWith(o)).toList();
+    options.map((o) => SymbolOptions.defaultOptions.copyWith(o)).toList();
 
     final symbols = await _mapboxGlPlatform.addSymbols(effectiveOptions, data);
     symbols.forEach((s) => _symbols[s.id] = s);
@@ -539,7 +583,7 @@ class MapboxMapController extends ChangeNotifier {
   /// been notified.
   Future<Line> addLine(LineOptions options, [Map? data]) async {
     final LineOptions effectiveOptions =
-        LineOptions.defaultOptions.copyWith(options);
+    LineOptions.defaultOptions.copyWith(options);
     final line = await _mapboxGlPlatform.addLine(effectiveOptions, data);
     _lines[line.id] = line;
     notifyListeners();
@@ -638,7 +682,7 @@ class MapboxMapController extends ChangeNotifier {
   /// been notified.
   Future<Circle> addCircle(CircleOptions options, [Map? data]) async {
     final CircleOptions effectiveOptions =
-        CircleOptions.defaultOptions.copyWith(options);
+    CircleOptions.defaultOptions.copyWith(options);
     final circle = await _mapboxGlPlatform.addCircle(effectiveOptions, data);
     _circles[circle.id] = circle;
     notifyListeners();
@@ -739,7 +783,7 @@ class MapboxMapController extends ChangeNotifier {
   /// been notified.
   Future<Fill> addFill(FillOptions options, [Map? data]) async {
     final FillOptions effectiveOptions =
-        FillOptions.defaultOptions.copyWith(options);
+    FillOptions.defaultOptions.copyWith(options);
     final fill = await _mapboxGlPlatform.addFill(effectiveOptions, data);
     _fills[fill.id] = fill;
     notifyListeners();
@@ -934,12 +978,6 @@ class MapboxMapController extends ChangeNotifier {
     return _mapboxGlPlatform.addLayerBelow(layerId, sourceId, imageSourceId);
   }
 
-  /// Adds a Mapbox image layer to the map's style at render time. Only works for image sources!
-  @Deprecated("This method was renamed to addImageLayer for clarity.")
-  Future<void> addLayer(String imageLayerId, String imageSourceId) {
-    return _mapboxGlPlatform.addLayer(imageLayerId, imageSourceId);
-  }
-
   /// Adds a Mapbox image layer below the layer provided with belowLayerId to the map's style at render time. Only works for image sources!
   @Deprecated("This method was renamed to addImageLayerBelow for clarity.")
   Future<void> addLayerBelow(
@@ -975,6 +1013,39 @@ class MapboxMapController extends ChangeNotifier {
   /// The distance between pixels decreases as the latitude approaches the poles. This relationship parallels the relationship between longitudinal coordinates at different latitudes.
   Future<double> getMetersPerPixelAtLatitude(double latitude) async {
     return _mapboxGlPlatform.getMetersPerPixelAtLatitude(latitude);
+  }
+
+  /// Add a new source to the map
+  Future<void> addSource(String sourceid, SourceProperties properties) async {
+    return _mapboxGlPlatform.addSource(sourceid, properties);
+  }
+
+  Future<void> addLayer(
+      String sourceId, String layerId, LayerProperties properties,
+      {String? belowLayerId,
+        bool enableInteraction = true,
+        String? sourceLayer}) async {
+    if (properties is FillLayerProperties) {
+      addFillLayer(sourceId, layerId, properties,
+          belowLayerId: belowLayerId, sourceLayer: sourceLayer);
+    } else if (properties is LineLayerProperties) {
+      addLineLayer(sourceId, layerId, properties,
+          belowLayerId: belowLayerId, sourceLayer: sourceLayer);
+    } else if (properties is SymbolLayerProperties) {
+      addSymbolLayer(sourceId, layerId, properties,
+          belowLayerId: belowLayerId, sourceLayer: sourceLayer);
+    } else if (properties is CircleLayerProperties) {
+      addCircleLayer(sourceId, layerId, properties,
+          belowLayerId: belowLayerId, sourceLayer: sourceLayer);
+    } else if (properties is RasterLayerProperties) {
+      addRasterLayer(sourceId, layerId, properties,
+          belowLayerId: belowLayerId, sourceLayer: sourceLayer);
+    } else if (properties is HillshadeLayerProperties) {
+      addHillshadeLayer(sourceId, layerId, properties,
+          belowLayerId: belowLayerId, sourceLayer: sourceLayer);
+    } else {
+      throw UnimplementedError("Unknown layer type $properties");
+    }
   }
 
   @override
