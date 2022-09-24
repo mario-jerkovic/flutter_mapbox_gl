@@ -18,9 +18,9 @@ dependencies:
   http: ^0.13.0
   collection: ^1.0.0
 
-dependency_overrides:
-  mapbox_gl_platform_interface:
-    path: ../mapbox_gl_platform_interface
+#dependency_overrides:
+#  mapbox_gl_platform_interface:
+#    path: ../mapbox_gl_platform_interface
 
 dev_dependencies:
   flutter_test:
