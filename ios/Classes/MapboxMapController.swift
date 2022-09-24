@@ -326,6 +326,7 @@ class MapboxMapController: NSObject, FlutterPlatformView, MGLMapViewDelegate, Ma
             let belowLayerId = arguments["belowLayerId"] as? String
             let sourceLayer = arguments["sourceLayer"] as? String
             let filter = arguments["filter"] as? String
+            print("MARIO: ", "\t", filter)
             let addResult = addSymbolLayer(
                 sourceId: sourceId,
                 layerId: layerId,
